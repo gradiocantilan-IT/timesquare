@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timesquare</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; }
+        :root {
+            --fb-blue: #1877f2;
+            --fb-blue-hover: #166fe5;
+            --bg: #f0f2f5;
+            --bg-post: white;
+            --text: #050505;
+            --text-secondary: #65676b;
+            --border: #dddfe2;
+            --gray-hover: #e4e6eb;
+        }
+        body.dark {
+            --bg: #18191a;
+            --bg-post: #242526;
+            --text: #e4e6eb;
+            --text-secondary: #b0b3b8;
+            --border: #3a3b3c;
+            --gray-hover: #3a3b3c;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.4;
+        }
+
+        /* ─── Header ─── (Facebook-style - always show icons, no hamburger) */
+        .header {
+            background: var(--bg-post);
+            height: 56px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            max-width: 50%;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .search-box {
+            background: var(--bg);
+            border-radius: 999px;
+            padding: 8px 16px;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            min-width: 140px;
+            flex: 1;
+            max-width: 360px;
+        }
+
+        .nav-icons {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .nav-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: background 0.2s;
+        }
+        .nav-icon:hover { background: var(--gray-hover); }
+
+        /* Responsive adjustments - keep icons always visible */
+        @media (max-width: 768px) {
+            .search-box { display: none; }
+            .header { padding: 0 8px; height: 52px; }
+            .logo { width: 36px; height: 36px; }
+            .nav-icon { 
+                width: 36px; 
+                height: 36px; 
+                font-size: 1.1rem; 
+            }
+            .nav-icons { gap: 2px; }
+            .header-left { max-width: 40%; }
+        }
+
+        @media (max-width: 480px) {
+            .nav-icon { width: 34px; height: 34px; font-size: 1rem; }
+        }
+
+        /* ─── Layout & other styles (unchanged from previous) ─── */
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 70px auto 20px;
+            gap: 16px;
+            padding: 0 16px;
+        }
+        .sidebar, .right-sidebar {
+            width: 300px;
+            position: sticky;
+            top: 76px;
+            align-self: start;
+        }
+        .feed { flex: 1; max-width: 600px; }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .menu-item:hover { background: var(--gray-hover); }
+        .menu-icon {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--fb-blue); color: white;
+            display: grid; place-items: center; font-size: 1.1rem;
+        }
+        .create-post {
+            background: var(--bg-post);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .create-post-top { display: flex; gap: 12px; }
+        .avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        .post-input {
+            flex: 1; background: var(--bg); border-radius: 999px;
+            padding: 10px 16px; color: var(--text-secondary);
+            cursor: pointer; display: flex; align-items: center;
+        }
+        .post-actions {
+            display: flex; justify-content: space-between; margin-top: 12px;
+            padding-top: 8px; border-top: 1px solid var(--border);
+        }
+        .post-action {
+            flex: 1; text-align: center; padding: 8px;
+            cursor: pointer; border-radius: 6px;
+        }
+        .post-action:hover { background: var(--gray-hover); }
+        .post {
+            background: var(--bg-post); border-radius: 8px;
+            margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .post-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 16px;
+        }
+        .post-user { display: flex; align-items: center; gap: 10px; }
+        .user-info h4 { font-size: 0.95rem; margin: 0; }
+        .user-info span { font-size: 0.8rem; color: var(--text-secondary); }
+        .post-content { padding: 0 16px 12px; }
+        .post-media, .post-video {
+            width: 100%; display: block; max-height: 500px;
+            object-fit: cover; border-radius: 8px;
+        }
+        .post-stats {
+            padding: 8px 16px; color: var(--text-secondary); font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+        }
+        .post-buttons { display: flex; border-top: 1px solid var(--border); }
+        .post-btn {
+            flex: 1; text-align: center; padding: 10px;
+            cursor: pointer; color: var(--text-secondary);
+        }
+        .post-btn:hover { background: var(--gray-hover); }
+        .post-btn.liked { color: var(--fb-blue); font-weight: 600; }
+        .comments { padding: 8px 16px; }
+        .comment { display: flex; gap: 8px; margin-bottom: 12px; }
+        .comment-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #ccc; flex-shrink: 0;
+        }
+        .comment-body {
+            background: var(--gray-hover); padding: 8px 12px;
+            border-radius: 18px; border-top-left-radius: 4px;
+        }
+        .comment-user { font-weight: 600; font-size: 0.9rem; }
+        .comment-text { font-size: 0.9rem; }
+        .comment-input-wrapper { display: none; padding: 8px 16px 12px; }
+        .comment-input {
+            width: 100%; padding: 8px 16px; border-radius: 999px;
+            border: none; background: var(--bg); outline: none;
+        }
+        #media-preview-container {
+            margin-top: 12px; position: relative; display: none;
+        }
+        #media-preview {
+            width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px;
+        }
+        #remove-preview {
+            position: absolute; top: 8px; right: 8px;
+            background: rgba(0,0,0,0.7); color: white; border: none;
+            border-radius: 50%; width: 28px; height: 28px; cursor: pointer;
+        }
+        #share-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5); align-items: center; justify-content: center;
+            z-index: 200;
+        }
+        .share-dialog {
+            background: var(--bg-post); border-radius: 12px;
+            width: 100%; max-width: 400px; padding: 16px;
+        }
+        .share-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px;
+        }
+        .share-close {
+            font-size: 1.8rem; cursor: pointer; padding: 4px 12px;
+        }
+        .share-option {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px; border-radius: 8px; cursor: pointer;
+        }
+        .share-option:hover { background: var(--gray-hover); }
+        .share-icon {
+            width: 40px; height: 40px; border-radius: 50%;
+            display: grid; place-items: center; font-size: 1.3rem;
+        }
+
+        @media (max-width: 1000px) {
+            .sidebar, .right-sidebar { display: none; }
+            .feed { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-left">
+        <div class="logo">
+            <img src="logo.png" alt="Timesquare Logo">
+        </div>
+        <input type="text" class="search-box" placeholder="Search Timesquare">
+    </div>
+
+    <div class="nav-icons">
+        <div class="nav-icon">🏠</div>
+        <div class="nav-icon">👥</div>
+        <div class="nav-icon">📺</div>
+        <div class="nav-icon">🔔</div>
+        <div class="nav-icon" onclick="document.body.classList.toggle('dark')">🌙</div>
+    </div>
+</header>
+
+<div class="container">
+    <div class="sidebar">
+        <div class="menu-item">
+            <div class="menu-icon" style="background:linear-gradient(135deg,#667eea,#764ba2)">Y</div>
+            <span style="font-weight:600">Jorjan</span>
+        </div>
+        <div class="menu-item"><div class="menu-icon">👥</div><span>Friends</span></div>
+        <div class="menu-item"><div class="menu-icon">📅</div><span>Memories</span></div>
+        <div class="menu-item"><div class="menu-icon">🔖</div><span>Saved</span></div>
+        <div class="menu-item"><div class="menu-icon">📺</div><span>Watch</span></div>
+    </div>
+
+    <div class="feed" id="feed">
+        <div class="create-post">
+            <div class="create-post-top">
+                <div class="avatar"></div>
+                <div class="post-input" onclick="showCreatePostPrompt()">What's on your mind, Jorjan?</div>
+            </div>
+            <div id="media-preview-container">
+                <video id="media-preview" controls preload="metadata"></video>
+                <button id="remove-preview" onclick="removeMediaPreview()">×</button>
+            </div>
+            <div class="post-actions">
+                <div class="post-action">📹 Live video</div>
+                <div class="post-action" onclick="document.getElementById('media-input').click()">📷 Photo/video</div>
+                <div class="post-action">😊 Feeling/activity</div>
+            </div>
+            <input type="file" id="media-input" accept="image/*,video/*" style="display:none;">
+        </div>
+
+        <!-- Post 1 -->
+        <div class="post" data-post-id="p1">
+            <div class="post-header">
+                <div class="post-user">
+                    <div class="avatar" style="background:linear-gradient(135deg,#fa709a,#fee140)"></div>
+                    <div class="user-info"><h4>Sarah Johnson</h4><span>2 hrs ago • 🌎</span></div>
+                </div>
+                <span>⋯</span>
+            </div>
+            <div class="post-content">Just finished an amazing hike at Yosemite! 🏔️🌲 #nature #travel</div>
+            <img class="post-media" src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800" alt="Yosemite">
+            <div class="post-stats"><span class="like-count">👍 234</span><span class="comment-count">45 comments • 12 shares</span></div>
+            <div class="post-buttons">
+                <div class="post-btn" onclick="toggleLike(this)"><span>👍 Like</span></div>
+                <div class="post-btn" onclick="toggleCommentInput('p1')"><span>💬 Comment</span></div>
+                <div class="post-btn" onclick="openShareModal('p1')"><span>↗️ Share</span></div>
+            </div>
+            <div class="comments" id="comments-p1"></div>
+            <div class="comment-input-wrapper" id="comment-input-p1">
+                <input type="text" class="comment-input" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment('p1', this)">
+            </div>
+        </div>
+
+        <!-- Post 2 - Video -->
+        <div class="post" data-post-id="p2">
+            <div class="post-header">
+                <div class="post-user">
+                    <div class="avatar" style="background:linear-gradient(135deg,#ff9a9e,#fad0c4)"></div>
+                    <div class="user-info"><h4>Emma Wilson</h4><span>45 min ago • Cebu City</span></div>
+                </div>
+                <span>⋯</span>
+            </div>
+            <div class="post-content">Beach day in Mactan! The water is so clear today 🏖️☀️ #CebuVibes #IslandLife</div>
+            <video class="post-video" controls src="https://videos.pexels.com/video-files/855573/855573-hd_1920_1080_30fps.mp4"></video>
+            <div class="post-stats"><span class="like-count">👍 312</span><span class="comment-count">68 comments • 21 shares</span></div>
+            <div class="post-buttons">
+                <div class="post-btn" onclick="toggleLike(this)"><span>👍 Like</span></div>
+                <div class="post-btn" onclick="toggleCommentInput('p2')"><span>💬 Comment</span></div>
+                <div class="post-btn" onclick="openShareModal('p2')"><span>↗️ Share</span></div>
+            </div>
+            <div class="comments" id="comments-p2"></div>
+            <div class="comment-input-wrapper" id="comment-input-p2">
+                <input type="text" class="comment-input" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment('p2', this)">
+            </div>
+        </div>
+
+        <!-- Post 3 -->
+        <div class="post" data-post-id="p3">
+            <div class="post-header">
+                <div class="post-user">
+                    <div class="avatar" style="background:linear-gradient(135deg,#a18cd1,#fbc2eb)"></div>
+                    <div class="user-info"><h4>Mike Chen</h4><span>1 hr ago • Cebu</span></div>
+                </div>
+                <span>⋯</span>
+            </div>
+            <div class="post-content">Lechon for lunch! Nothing beats Cebu lechon 🔥 Who's joining next time? #CebuFood #Lechon</div>
+            <img class="post-media" src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800" alt="Lechon">
+            <div class="post-stats"><span class="like-count">👍 187</span><span class="comment-count">41 comments • 9 shares</span></div>
+            <div class="post-buttons">
+                <div class="post-btn" onclick="toggleLike(this)"><span>👍 Like</span></div>
+                <div class="post-btn" onclick="toggleCommentInput('p3')"><span>💬 Comment</span></div>
+                <div class="post-btn" onclick="openShareModal('p3')"><span>↗️ Share</span></div>
+            </div>
+            <div class="comments" id="comments-p3"></div>
+            <div class="comment-input-wrapper" id="comment-input-p3">
+                <input type="text" class="comment-input" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment('p3', this)">
+            </div>
+        </div>
+
+        <!-- Post 4 - Funny text -->
+        <div class="post" data-post-id="p4">
+            <div class="post-header">
+                <div class="post-user">
+                    <div class="avatar" style="background:linear-gradient(135deg,#f093fb,#f5576c)"></div>
+                    <div class="user-info"><h4>Lia Santos</h4><span>30 min ago • Cebu</span></div>
+                </div>
+                <span>⋯</span>
+            </div>
+            <div class="post-content">When you say "5 more minutes" and wake up 2 hours later 😭💀 #MorningStruggles #SendHelp</div>
+            <div class="post-stats"><span class="like-count">👍 489</span><span class="comment-count">112 comments • 27 shares</span></div>
+            <div class="post-buttons">
+                <div class="post-btn" onclick="toggleLike(this)"><span>👍 Like</span></div>
+                <div class="post-btn" onclick="toggleCommentInput('p4')"><span>💬 Comment</span></div>
+                <div class="post-btn" onclick="openShareModal('p4')"><span>↗️ Share</span></div>
+            </div>
+            <div class="comments" id="comments-p4"></div>
+            <div class="comment-input-wrapper" id="comment-input-p4">
+                <input type="text" class="comment-input" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment('p4', this)">
+            </div>
+        </div>
+
+        <!-- Post 5 - Video -->
+        <div class="post" data-post-id="p5">
+            <div class="post-header">
+                <div class="post-user">
+                    <div class="avatar" style="background:linear-gradient(135deg,#84fab0,#8fd3f4)"></div>
+                    <div class="user-info"><h4>Alex Rivera</h4><span>3 hrs ago • Bohol</span></div>
+                </div>
+                <span>⋯</span>
+            </div>
+            <div class="post-content">Chocolate Hills at sunrise — unreal colors 🌅 #Bohol #Philippines</div>
+            <video class="post-video" controls src="https://videos.pexels.com/video-files/3047095/3047095-hd_1920_1080_30fps.mp4"></video>
+            <div class="post-stats"><span class="like-count">👍 204</span><span class="comment-count">53 comments • 16 shares</span></div>
+            <div class="post-buttons">
+                <div class="post-btn" onclick="toggleLike(this)"><span>👍 Like</span></div>
+                <div class="post-btn" onclick="toggleCommentInput('p5')"><span>💬 Comment</span></div>
+                <div class="post-btn" onclick="openShareModal('p5')"><span>↗️ Share</span></div>
+            </div>
+            <div class="comments" id="comments-p5"></div>
+            <div class="comment-input-wrapper" id="comment-input-p5">
+                <input type="text" class="comment-input" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment('p5', this)">
+            </div>
+        </div>
+
+        <!-- More posts... -->
+        <div class="post" data-post-id="p6">
+            <div class="post-header">
+                <div class="post-user">
+                    <div class="avatar" style="background:linear-gradient(135deg,#667eea,#764ba2)"></div>
+                    <div class="user-info"><h4>Jorjan</h4><span>Just now • Cebu City</span></div>
+                </div>
+                <span>⋯</span>
+            </div>
+            <div class="post-content">Weekend coffee run at a new spot in IT Park ☕✨ Highly recommend their matcha latte! #CebuCoffee #ITPark</div>
+            <img class="post-media" src="https://images.unsplash.com/photo-1512568400610-62da28bc8a13?w=800" alt="Coffee">
+            <div class="post-stats"><span class="like-count">👍 98</span><span class="comment-count">14 comments • 3 shares</span></div>
+            <div class="post-buttons">
+                <div class="post-btn" onclick="toggleLike(this)"><span>👍 Like</span></div>
+                <div class="post-btn" onclick="toggleCommentInput('p6')"><span>💬 Comment</span></div>
+                <div class="post-btn" onclick="openShareModal('p6')"><span>↗️ Share</span></div>
+            </div>
+            <div class="comments" id="comments-p6"></div>
+            <div class="comment-input-wrapper" id="comment-input-p6">
+                <input type="text" class="comment-input" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment('p6', this)">
+            </div>
+        </div>
+
+        <!-- Post 7 -->
+        <div class="post" data-post-id="p7">
+            <div class="post-header">
+                <div class="post-user">
+                    <div class="avatar" style="background:linear-gradient(135deg,#ff6b6b,#ffe66d)"></div>
+                    <div class="user-info"><h4>Carlo Mendoza</h4><span>4 hrs ago • Lapu-Lapu</span></div>
+                </div>
+                <span>⋯</span>
+            </div>
+            <div class="post-content">Caught the sunset at Maribago Beach — pure magic 🌅❤️ #CebuSunset #Maribago</div>
+            <img class="post-media" src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800" alt="Sunset beach">
+            <div class="post-stats"><span class="like-count">👍 276</span><span class="comment-count">62 comments • 18 shares</span></div>
+            <div class="post-buttons">
+                <div class="post-btn" onclick="toggleLike(this)"><span>👍 Like</span></div>
+                <div class="post-btn" onclick="toggleCommentInput('p7')"><span>💬 Comment</span></div>
+                <div class="post-btn" onclick="openShareModal('p7')"><span>↗️ Share</span></div>
+            </div>
+            <div class="comments" id="comments-p7"></div>
+            <div class="comment-input-wrapper" id="comment-input-p7">
+                <input type="text" class="comment-input" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment('p7', this)">
+            </div>
+        </div>
+
+        <!-- Post 8 - News style -->
+        <div class="post" data-post-id="p8">
+            <div class="post-header">
+                <div class="post-user">
+                    <div class="avatar" style="background:linear-gradient(135deg,#4facfe,#00f2fe)"></div>
+                    <div class="user-info"><h4>Cebu Daily News</h4><span>6 hrs ago • Cebu</span></div>
+                </div>
+                <span>⋯</span>
+            </div>
+            <div class="post-content">New flyover project in Mandaue expected to ease traffic by 2027 — construction starts next month 🚧 #CebuInfra #TrafficUpdate</div>
+            <img class="post-media" src="https://images.unsplash.com/photo-1581092160560-1c1e428e9d65?w=800" alt="Construction">
+            <div class="post-stats"><span class="like-count">👍 145</span><span class="comment-count">38 comments • 11 shares</span></div>
+            <div class="post-buttons">
+                <div class="post-btn" onclick="toggleLike(this)"><span>👍 Like</span></div>
+                <div class="post-btn" onclick="toggleCommentInput('p8')"><span>💬 Comment</span></div>
+                <div class="post-btn" onclick="openShareModal('p8')"><span>↗️ Share</span></div>
+            </div>
+            <div class="comments" id="comments-p8"></div>
+            <div class="comment-input-wrapper" id="comment-input-p8">
+                <input type="text" class="comment-input" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment('p8', this)">
+            </div>
+        </div>
+
+    </div>
+
+    <div class="right-sidebar">
+        <div style="background:var(--bg-post); border-radius:8px; padding:12px; margin-bottom:16px;">
+            <strong>Contacts</strong><br><br>
+            <div class="menu-item">
+                <div class="avatar" style="width:32px;height:32px;background:#4facfe"></div>
+                Mike Chen <span style="margin-left:auto; color:#31a24c">●</span>
+            </div>
+            <div class="menu-item">
+                <div class="avatar" style="width:32px;height:32px;background:#f093fb"></div>
+                Emma Wilson <span style="margin-left:auto; color:#31a24c">●</span>
+            </div>
+            <div class="menu-item">
+                <div class="avatar" style="width:32px;height:32px;background:#ff9a9e"></div>
+                Sarah Johnson <span style="margin-left:auto; color:#31a24c">●</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div id="share-modal">
+    <div class="share-dialog">
+        <div class="share-header">
+            <h3>Share</h3>
+            <div class="share-close" onclick="closeShareModal()">×</div>
+        </div>
+        <div class="share-option" onclick="shareToFeed()">
+            <div class="share-icon">📢</div>
+            <div class="share-option-text">
+                <strong>Share to News Feed</strong>
+                <small>Post this to your timeline</small>
+            </div>
+        </div>
+        <div class="share-option" onclick="copyLink()">
+            <div class="share-icon" style="background:#31a24c">🔗</div>
+            <div class="share-option-text">
+                <strong>Copy link</strong>
+                <small>Copy link to clipboard</small>
+            </div>
+        </div>
+        <div class="share-option" onclick="alert('In a real app: Messenger, WhatsApp, Email, etc. would appear here.')">
+            <div class="share-icon" style="background:#0084ff">💬</div>
+            <div class="share-option-text">
+                <strong>Send in Messenger</strong>
+                <small>Share privately with friends</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleMobileMenu() {
+    // No longer needed - kept for compatibility if you want to re-add later
+}
+
+// Interaction functions
+function showCreatePostPrompt() {
+    const content = prompt("What's on your mind?");
+    if (!content) return;
+    const feed = document.getElementById('feed');
+    const postId = 'post-' + Date.now();
+    const post = document.createElement('div');
+    post.className = 'post';
+    post.dataset.postId = postId;
+    post.innerHTML = `
+        <div class="post-header">
+            <div class="post-user">
+                <div class="avatar" style="background:linear-gradient(135deg,#667eea,#764ba2); color:white; display:grid; place-items:center; font-weight:bold;">YO</div>
+                <div class="user-info"><h4>You</h4><span>Just now • 🌎</span></div>
+            </div>
+            <span>⋯</span>
+        </div>
+        <div class="post-content">${content.replace(/\n/g,'<br>')}</div>
+        <div class="post-stats"><span class="like-count">👍 0</span><span class="comment-count">0 comments • 0 shares</span></div>
+        <div class="post-buttons">
+            <div class="post-btn" onclick="toggleLike(this)"><span>👍 Like</span></div>
+            <div class="post-btn" onclick="toggleCommentInput('${postId}')"><span>💬 Comment</span></div>
+            <div class="post-btn" onclick="openShareModal('${postId}')"><span>↗️ Share</span></div>
+        </div>
+        <div class="comments" id="comments-${postId}"></div>
+        <div class="comment-input-wrapper" id="comment-input-${postId}">
+            <input type="text" class="comment-input" placeholder="Write a comment..." onkeypress="if(event.key==='Enter') addComment('${postId}', this)">
+        </div>
+    `;
+    feed.insertBefore(post, feed.children[1]);
+}
+
+function removeMediaPreview() {
+    document.getElementById('media-preview-container').style.display = 'none';
+}
+
+function toggleLike(btn) {
+    const liked = btn.classList.toggle('liked');
+    const countEl = btn.closest('.post').querySelector('.like-count');
+    let count = parseInt(countEl.textContent.replace(/\D/g,'')) || 0;
+    countEl.textContent = `👍 ${liked ? count+1 : Math.max(0,count-1)}`;
+    btn.querySelector('span').textContent = liked ? 'Liked' : 'Like';
+}
+
+function toggleCommentInput(id) {
+    const el = document.getElementById(`comment-input-${id}`);
+    el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    if (el.style.display === 'block') el.querySelector('input')?.focus();
+}
+
+function addComment(id, input) {
+    const text = input.value.trim();
+    if (!text) return;
+    const comments = document.getElementById(`comments-${id}`);
+    const div = document.createElement('div');
+    div.className = 'comment';
+    div.innerHTML = `<div class="comment-avatar"></div><div class="comment-body"><div class="comment-user">You</div><div class="comment-text">${text}</div></div>`;
+    comments.appendChild(div);
+    const countEl = comments.closest('.post').querySelector('.comment-count');
+    let [commentsTxt] = countEl.textContent.split(' • ');
+    let num = parseInt(commentsTxt.match(/\d+/)?.[0] || '0') + 1;
+    countEl.textContent = `${num} comments • 0 shares`;
+    input.value = '';
+}
+
+let currentSharePostId = null;
+function openShareModal(id) {
+    currentSharePostId = id;
+    document.getElementById('share-modal').style.display = 'flex';
+}
+function closeShareModal() {
+    document.getElementById('share-modal').style.display = 'none';
+    currentSharePostId = null;
+}
+function shareToFeed() { alert('Shared! (demo)'); closeShareModal(); }
+function copyLink() { alert('Link copied (demo)'); closeShareModal(); }
+
+document.getElementById('share-modal')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeShareModal();
+});
+</script>
+</body>
+</html>
